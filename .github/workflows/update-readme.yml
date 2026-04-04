@@ -1,0 +1,36 @@
+name: Update README
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  update-readme:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install cogapp llm
+
+      - name: Run cog to update README
+        run: cog -r -P README.md
+        env:
+          LLM_ANTHROPIC_KEY: ${{ secrets.LLM_ANTHROPIC_KEY }}
+
+      - name: Commit changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add README.md '**/_summary.md'
+          git diff --staged --quiet || git commit -m "Update README [skip ci]"
+          git push
