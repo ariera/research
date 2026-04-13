@@ -18,6 +18,10 @@ Parse arguments as:
 - First positional arg (optional): CIR number (e.g. `007`, `42`). If not provided, determine next number from existing CIRs in `docs/cir/`.
 - Remaining args (optional): title slug (e.g. `auth-token-refresh`). If not provided, infer from the session context.
 
+## Reference Material
+
+If you are unsure how to fill in any section — especially Behavior's "does NOT" clauses or the Decisions table — read `references/examples.md` (relative to this SKILL.md) for two annotated real-world examples and guidance on what makes each section useful vs hollow.
+
 ## Instructions
 
 ### Step 1: Determine CIR number and title
