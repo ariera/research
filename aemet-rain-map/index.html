@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spain Rain Forecast — AEMET / Open-Meteo</title>
+  <link href="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.css" rel="stylesheet">
+  <script src="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #0d1117;
+      color: #e6edf3;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    #header {
+      background: #161b22;
+      border-bottom: 1px solid #30363d;
+      padding: 8px 16px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-shrink: 0;
+    }
+
+    #header h1 {
+      font-size: 1em;
+      font-weight: 600;
+      color: #58a6ff;
+    }
+
+    #header .subtitle {
+      font-size: 0.8em;
+      color: #8b949e;
+    }
+
+    #map { flex: 1; }
+
+    #controls {
+      padding: 10px 16px;
+      background: #161b22;
+      border-top: 1px solid #30363d;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    #time-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    #time-slider {
+      flex: 1;
+      accent-color: #58a6ff;
+      height: 4px;
+      cursor: pointer;
+    }
+
+    #time-label {
+      min-width: 180px;
+      text-align: right;
+      font-size: 0.85em;
+      color: #e6edf3;
+      font-variant-numeric: tabular-nums;
+    }
+
+    #bottom-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    #toggles {
+      display: flex;
+      gap: 16px;
+      font-size: 0.82em;
+      color: #8b949e;
+    }
+
+    #toggles label {
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    #toggles input[type=checkbox] {
+      accent-color: #58a6ff;
+    }
+
+    #legend {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    #legend .bar {
+      width: 220px;
+      height: 10px;
+      border-radius: 5px;
+      background: linear-gradient(to right,
+        transparent 0%,
+        rgba(0,200,255,0.8) 10%,
+        rgba(0,230,102,0.85) 25%,
+        rgba(255,255,0,0.9) 45%,
+        rgba(255,136,0,0.9) 60%,
+        rgba(255,40,40,0.95) 75%,
+        rgba(180,0,255,1) 100%
+      );
+    }
+
+    #legend .labels {
+      display: flex;
+      justify-content: space-between;
+      width: 220px;
+      font-size: 0.7em;
+      color: #6e7681;
+    }
+
+    #status-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 0.78em;
+    }
+
+    .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+      flex-shrink: 0;
+    }
+
+    .dot-radar { background: #58a6ff; }
+    .dot-forecast { background: #3fb950; }
+    .dot-loading { background: #f0883e; animation: pulse 1s infinite; }
+
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+    #status-text { color: #8b949e; }
+    #mode-badge {
+      padding: 1px 8px;
+      border-radius: 10px;
+      font-size: 0.85em;
+      font-weight: 600;
+    }
+    .badge-radar { background: rgba(88,166,255,0.15); color: #58a6ff; border: 1px solid rgba(88,166,255,0.4); }
+    .badge-forecast { background: rgba(63,185,80,0.15); color: #3fb950; border: 1px solid rgba(63,185,80,0.4); }
+
+    button#play-btn {
+      background: #21262d;
+      border: 1px solid #30363d;
+      color: #e6edf3;
+      padding: 4px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.85em;
+      transition: background 0.15s;
+      white-space: nowrap;
+    }
+
+    button#play-btn:hover { background: #30363d; }
+
+    .model-badge {
+      font-size: 0.75em;
+      color: #6e7681;
+      background: #21262d;
+      padding: 1px 6px;
+      border-radius: 4px;
+      border: 1px solid #30363d;
+    }
+  </style>
+</head>
+<body>
+
+<div id="header">
+  <h1>Spain Rain Forecast</h1>
+  <span class="subtitle">Past 2h radar + 48h forecast</span>
+</div>
+
+<div id="map"></div>
+
+<div id="controls">
+  <div id="time-row">
+    <button id="play-btn">▶ Play</button>
+    <input type="range" id="time-slider" min="0" max="100" value="50" step="1">
+    <span id="time-label">Loading…</span>
+  </div>
+
+  <div id="bottom-row">
+    <div id="status-row">
+      <span class="dot dot-loading" id="status-dot"></span>
+      <span id="status-text">Loading data…</span>
+      <span id="mode-badge" class="badge-radar" style="display:none"></span>
+    </div>
+
+    <div id="toggles">
+      <label>
+        <input type="checkbox" id="radar-chk" checked>
+        <span class="dot dot-radar"></span> Radar (past)
+      </label>
+      <label>
+        <input type="checkbox" id="forecast-chk" checked>
+        <span class="dot dot-forecast"></span> Forecast (future)
+      </label>
+      <span class="model-badge">Open-Meteo · best_match</span>
+      <span class="model-badge">RainViewer radar</span>
+    </div>
+
+    <div id="legend">
+      <div class="bar"></div>
+      <div class="labels">
+        <span>0.1</span><span>0.5</span><span>2</span>
+        <span>5</span><span>15</span><span>40mm/h</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+// ── Grid of points over Spain + Portugal ────────────────────────────────────
+const GRID_LATS = [36, 37.5, 39, 40.5, 42, 43.5];
+const GRID_LONS = [-9, -7.5, -6, -4.5, -3, -1.5, 0, 1.5, 3];
+
+const gridPoints = [];
+for (const lat of GRID_LATS)
+  for (const lon of GRID_LONS)
+    gridPoints.push({ lat, lon });
+
+// ── State ───────────────────────────────────────────────────────────────────
+let radarFrames = [];          // [{time: unix, path: string, host: string}]
+let gridForecast = [];         // [{lat, lon, times: [], precip: []}]
+let allTimes = [];             // unified sorted timeline entries
+let currentIdx = 0;
+let playing = false;
+let playTimer = null;
+let currentRadarSourceId = null;
+
+// ── MapLibre setup ──────────────────────────────────────────────────────────
+const map = new maplibregl.Map({
+  container: 'map',
+  style: {
+    version: 8,
+    glyphs: 'https://fonts.openmaptiles.org/{fontstack}/{range}.pbf',
+    sources: {
+      osm: {
+        type: 'raster',
+        tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+        tileSize: 256,
+        maxzoom: 18,
+        attribution: '© <a href="https://openstreetmap.org/copyright">OpenStreetMap</a>'
+      }
+    },
+    layers: [{
+      id: 'osm-tiles',
+      type: 'raster',
+      source: 'osm',
+      paint: { 'raster-opacity': 0.85, 'raster-saturation': -0.6, 'raster-brightness-min': 0.1 }
+    }]
+  },
+  center: [-3.7, 40.0],
+  zoom: 5,
+  maxZoom: 10,
+  minZoom: 4
+});
+
+map.addControl(new maplibregl.NavigationControl(), 'top-right');
+map.addControl(new maplibregl.ScaleControl({ maxWidth: 120, unit: 'metric' }), 'bottom-left');
+
+// ── Color mapping for precipitation ─────────────────────────────────────────
+// MapLibre expression: interpolate on 'precip' property (mm/h)
+const PRECIP_COLOR_EXPR = [
+  'interpolate', ['linear'],
+  ['coalesce', ['get', 'precip'], 0],
+  0,    'rgba(0,0,0,0)',
+  0.05, 'rgba(0,200,255,0.15)',
+  0.1,  'rgba(0,200,255,0.55)',
+  0.5,  'rgba(0,230,102,0.65)',
+  2,    'rgba(255,255,0,0.75)',
+  5,    'rgba(255,180,0,0.80)',
+  10,   'rgba(255,60,20,0.85)',
+  25,   'rgba(200,0,255,0.90)',
+  50,   'rgba(140,0,200,0.95)'
+];
+
+// Circle radius interpolated by zoom level (covers ~1.5° at any zoom)
+const CIRCLE_RADIUS_EXPR = [
+  'interpolate', ['exponential', 2], ['zoom'],
+  3, 35,
+  4, 50,
+  5, 75,
+  6, 110,
+  7, 160,
+  8, 240
+];
+
+// ── Fetch data ───────────────────────────────────────────────────────────────
+async function fetchRainViewer() {
+  const r = await fetch('https://api.rainviewer.com/public/weather-maps.json');
+  if (!r.ok) throw new Error('RainViewer: ' + r.status);
+  const d = await r.json();
+  radarFrames = (d.radar.past || []).map(f => ({
+    time: f.time * 1000,   // ms
+    path: f.path,
+    host: d.host
+  }));
+}
+
+async function fetchForecast() {
+  const lats = gridPoints.map(p => p.lat).join(',');
+  const lons = gridPoints.map(p => p.lon).join(',');
+  const url =
+    `https://api.open-meteo.com/v1/forecast` +
+    `?latitude=${lats}&longitude=${lons}` +
+    `&hourly=precipitation` +
+    `&forecast_days=3` +
+    `&timezone=UTC`;
+
+  const r = await fetch(url);
+  if (!r.ok) throw new Error('Open-Meteo: ' + r.status);
+  const data = await r.json();
+
+  // Open-Meteo returns an array when multiple locations are given
+  const arr = Array.isArray(data) ? data : [data];
+  gridForecast = arr.map((d, i) => ({
+    lat: gridPoints[i].lat,
+    lon: gridPoints[i].lon,
+    times:  d.hourly.time,          // ["2026-04-16T00:00", ...]
+    precip: d.hourly.precipitation  // [mm, ...]
+  }));
+}
+
+// ── GeoJSON helpers ──────────────────────────────────────────────────────────
+function forecastGeoJSON(isoTimeStr) {
+  // Find the closest time index in the forecast for the requested ISO string
+  const features = gridForecast.map(pt => {
+    let idx = pt.times.indexOf(isoTimeStr);
+    // Fall back: find nearest available time if exact match not found
+    if (idx < 0) {
+      const tMs = new Date(isoTimeStr + 'Z').getTime();
+      let best = 0, bestDiff = Infinity;
+      pt.times.forEach((t, i) => {
+        const diff = Math.abs(new Date(t + 'Z').getTime() - tMs);
+        if (diff < bestDiff) { bestDiff = diff; best = i; }
+      });
+      idx = best;
+    }
+    const val = Math.max(0, pt.precip[idx] || 0);
+    return {
+      type: 'Feature',
+      geometry: { type: 'Point', coordinates: [pt.lon, pt.lat] },
+      properties: { precip: val }
+    };
+  });
+  return { type: 'FeatureCollection', features };
+}
+
+// ── Layer management ─────────────────────────────────────────────────────────
+function setRadarFrame(frame) {
+  const srcId = 'rv-' + frame.time;
+  const layId = 'rv-layer-' + frame.time;
+
+  // Remove previous radar layer/source
+  if (currentRadarSourceId && currentRadarSourceId !== srcId) {
+    const oldLayId = 'rv-layer-' + currentRadarSourceId.slice(3);
+    if (map.getLayer(oldLayId)) map.removeLayer(oldLayId);
+    if (map.getSource(currentRadarSourceId)) map.removeSource(currentRadarSourceId);
+  }
+
+  if (!map.getSource(srcId)) {
+    const tileUrl = `${frame.host}${frame.path}/512/{z}/{x}/{y}/2/1_1.png`;
+    map.addSource(srcId, {
+      type: 'raster',
+      tiles: [tileUrl],
+      tileSize: 512,
+      minzoom: 0,
+      maxzoom: 7,
+      attribution: '© RainViewer'
+    });
+    map.addLayer({
+      id: layId,
+      type: 'raster',
+      source: srcId,
+      paint: { 'raster-opacity': 0.72 }
+    }, 'forecast-circles');   // insert below forecast layer
+  }
+
+  currentRadarSourceId = srcId;
+}
+
+function clearRadar() {
+  if (!currentRadarSourceId) return;
+  const layId = 'rv-layer-' + currentRadarSourceId.slice(3);
+  if (map.getLayer(layId)) map.removeLayer(layId);
+  if (map.getSource(currentRadarSourceId)) map.removeSource(currentRadarSourceId);
+  currentRadarSourceId = null;
+}
+
+// ── Unified timeline ─────────────────────────────────────────────────────────
+function buildTimeline() {
+  const now = Date.now();
+
+  const radarEntries = radarFrames.map(f => ({
+    ts: f.time,
+    type: 'radar',
+    frame: f
+  }));
+
+  // Use forecast times from first grid point; filter to now-1h through +48h
+  const fxTimes = gridForecast[0]?.times || [];
+  const forecastEntries = fxTimes
+    .map((t, i) => ({ ts: new Date(t + 'Z').getTime(), isoStr: t, fxIdx: i }))
+    .filter(e => e.ts >= now - 3_600_000)   // start 1h before now
+    .slice(0, 50)
+    .map(e => ({ ts: e.ts, type: 'forecast', isoStr: e.isoStr }));
+
+  allTimes = [...radarEntries, ...forecastEntries].sort((a, b) => a.ts - b.ts);
+
+  // Start at current time (closest to now)
+  let best = 0;
+  let bestDiff = Infinity;
+  allTimes.forEach((entry, i) => {
+    const d = Math.abs(entry.ts - now);
+    if (d < bestDiff) { bestDiff = d; best = i; }
+  });
+  currentIdx = best;
+
+  const slider = document.getElementById('time-slider');
+  slider.max = allTimes.length - 1;
+  slider.value = currentIdx;
+}
+
+// ── Display update ───────────────────────────────────────────────────────────
+function updateDisplay(idx) {
+  if (!allTimes.length) return;
+  currentIdx = Math.max(0, Math.min(idx, allTimes.length - 1));
+  const entry = allTimes[currentIdx];
+  const now = Date.now();
+
+  // Time label
+  const dt = new Date(entry.ts);
+  const diffMin = Math.round((entry.ts - now) / 60_000);
+  let diffStr;
+  if (Math.abs(diffMin) < 2)       diffStr = 'Now';
+  else if (diffMin > 0)             diffStr = `+${diffMin}m`;
+  else                              diffStr = `${diffMin}m`;
+
+  document.getElementById('time-label').textContent =
+    dt.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) + ' ' +
+    dt.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' }) +
+    ` (${diffStr})`;
+
+  const radarChk    = document.getElementById('radar-chk').checked;
+  const forecastChk = document.getElementById('forecast-chk').checked;
+  const badge = document.getElementById('mode-badge');
+
+  if (entry.type === 'radar') {
+    // Show radar, hide forecast
+    map.setLayoutProperty('forecast-circles', 'visibility', 'none');
+    if (radarChk) {
+      setRadarFrame(entry.frame);
+    } else {
+      clearRadar();
+    }
+    badge.textContent = 'Radar';
+    badge.className = 'badge-radar';
+  } else {
+    // Show forecast, hide radar
+    clearRadar();
+    if (forecastChk) {
+      map.getSource('forecast-src').setData(forecastGeoJSON(entry.isoStr));
+      map.setLayoutProperty('forecast-circles', 'visibility', 'visible');
+    } else {
+      map.setLayoutProperty('forecast-circles', 'visibility', 'none');
+    }
+    badge.textContent = 'Forecast';
+    badge.className = 'badge-forecast';
+  }
+
+  badge.style.display = '';
+}
+
+// ── Map load ─────────────────────────────────────────────────────────────────
+map.on('load', async () => {
+  // Add forecast source + layer (empty initially; will be filled after data load)
+  map.addSource('forecast-src', {
+    type: 'geojson',
+    data: { type: 'FeatureCollection', features: [] }
+  });
+
+  map.addLayer({
+    id: 'forecast-circles',
+    type: 'circle',
+    source: 'forecast-src',
+    layout: { visibility: 'none' },
+    paint: {
+      'circle-radius':      CIRCLE_RADIUS_EXPR,
+      'circle-color':       PRECIP_COLOR_EXPR,
+      'circle-blur':        0.6,
+      'circle-stroke-width': 0,
+      'circle-pitch-alignment': 'map'
+    }
+  });
+
+  // Fetch both data sources in parallel; use allSettled so one failure doesn't
+  // suppress the other result.
+  const [rvResult, fxResult] = await Promise.allSettled([
+    fetchRainViewer(),
+    fetchForecast()
+  ]);
+  const rvOk = rvResult.status === 'fulfilled';
+  const fxOk = fxResult.status === 'fulfilled';
+  if (!rvOk) console.warn('RainViewer error:', rvResult.reason);
+  if (!fxOk) console.warn('Open-Meteo error:', fxResult.reason);
+
+  // Report what loaded
+  const parts = [];
+  if (rvOk) parts.push(`${radarFrames.length} radar frames`);
+  if (fxOk) parts.push(`${gridForecast[0]?.times?.length ?? 0}h forecast · ${gridPoints.length} grid pts`);
+  if (!rvOk) parts.push('radar unavailable');
+  if (!fxOk) parts.push('forecast unavailable');
+
+  const dot = document.getElementById('status-dot');
+  dot.classList.remove('dot-loading');
+  dot.classList.add(rvOk || fxOk ? 'dot-radar' : 'dot-forecast');
+  document.getElementById('status-text').textContent = parts.join(' | ');
+
+  if (!rvOk && !fxOk) return;
+
+  buildTimeline();
+  updateDisplay(currentIdx);
+});
+
+// ── Controls ─────────────────────────────────────────────────────────────────
+document.getElementById('time-slider').addEventListener('input', e => {
+  updateDisplay(parseInt(e.target.value, 10));
+});
+
+document.getElementById('play-btn').addEventListener('click', () => {
+  playing = !playing;
+  document.getElementById('play-btn').textContent = playing ? '⏸ Pause' : '▶ Play';
+  if (playing) {
+    playTimer = setInterval(() => {
+      const next = (currentIdx + 1) % allTimes.length;
+      document.getElementById('time-slider').value = next;
+      updateDisplay(next);
+    }, 650);
+  } else {
+    clearInterval(playTimer);
+  }
+});
+
+document.getElementById('radar-chk').addEventListener('change', () => updateDisplay(currentIdx));
+document.getElementById('forecast-chk').addEventListener('change', () => updateDisplay(currentIdx));
+
+// Cleanup old radar layers when preloading (keep at most 3)
+map.on('idle', () => {
+  // nothing heavy needed in the prototype
+});
+</script>
+</body>
+</html>
