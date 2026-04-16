@@ -129,3 +129,27 @@ Distribution endpoints (via MITECO catalog — SSL issues observed during resear
 - Does `/en/api-eltiempo/radar/download/compo` return GeoTIFF? What CORS headers does it have?
 - Does `meteofrance_arome` on Open-Meteo cover all of Spain, or just near the Pyrenees?
 - Is there a WMS or WMTS endpoint for AEMET HARMONIE precipitation?
+
+---
+
+### 2026-04-16 — Sub-kilometer path
+
+Key insight from follow-up research: 2.5 km (HARMONIE) is NOT the floor.
+
+AEMET's 15 C-band radars have native range resolution of ~250 m and 1° azimuth.
+Only the composited PNG published via OpenData has been degraded to ~1 km.
+
+**The route to ~250-500 m:**
+1. Raw polar volume data → EUMETNET OPERA, ODIM HDF5 format
+   - RODEO project (rodeo-project.eu) building open API, through Dec 2025
+   - Currently on EWC S3 (requires EWC account, free for researchers)
+2. Processing with **wradlib** (Python):
+   - clutter removal (GABELLA) → attenuation correction (ZPHI) → Z-R conversion → Cartesian reprojection
+3. Nowcasting with **pySTEPS**:
+   - optical-flow motion estimation + stochastic cascade extrapolation
+   - 0-60 min ahead at native radar resolution
+
+Sub-km NWP forecast for Spain does NOT exist (1.3 km AROME is the floor).
+Sub-km observation/nowcast IS achievable via this pipeline, entirely open source.
+
+Commercial shortcut: Tomorrow.io maps API at 500 m, same tile URL pattern as RainViewer.
