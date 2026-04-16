@@ -30,3 +30,33 @@ email subject becomes the title, the body becomes the content.
   email client boilerplate)
 - Attachments: handle inline images
 - Workflow: publish immediately, or save as draft for review?
+
+---
+
+## 3. AEMET rain forecasting map
+
+**The idea:** Prototype an interactive map of Spain with an overlaid rain intensity
+layer driven by AEMET (Spanish Meteorological Agency) open data.
+
+**Things to figure out:**
+
+*Data research:*
+- What forecast products does AEMET publish via its Open Data API (api.aemet.es)
+- Data format (GRIB2, JSON, NetCDF?) and how to parse/render precipitation fields
+- Spatial granularity: grid resolution, coverage (Peninsula + islands)
+- Temporal granularity and update frequency per product
+- Available forecast horizons — short-term (<12 h), medium (1–3 days), extended (4–7 days)
+
+*Forecast models to investigate:*
+- HIRLAM / HARMONIE-AROME (high-res short-range, ~1–2 km, hourly)
+- ECMWF deterministic and ensemble (medium-range, coarser grid)
+- Any AEMET-specific post-processed guidance products
+
+*Map prototype:*
+- Tile-based map (Leaflet or MapLibre GL) supporting free zoom/pan over Spain
+- Precipitation overlay rendered as translucent cloud-like sprites or a smooth
+  raster layer, color-coded by intensity (e.g. green → yellow → red → purple)
+- Time-slider or animation to step through forecast hours
+- Toggle between available models / forecast horizons
+- Possible data sources if AEMET coverage is incomplete: Open-Meteo, Meteomatics,
+  or self-served GRIB tiles
