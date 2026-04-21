@@ -1,0 +1,37 @@
+#!/bin/bash
+set -euo pipefail
+
+# Finds highest compatible FileMaker version in search_path (default: /Applications).
+# Prints the full .app path and returns 0 on success, 1 if none found.
+_find_fm() {
+  local search_path="${1:-/Applications}"
+  local version name app
+  for version in 18 17 16; do
+    for name in "FileMaker Pro $version" "FileMaker Pro Advanced $version"; do
+      app="$search_path/$name.app"
+      if [ -d "$app" ]; then
+        echo "$app"
+        return 0
+      fi
+    done
+  done
+  return 1
+}
+
+_main() {
+  local script_dir
+  script_dir="$(cd "$(dirname "$0")" && pwd)"
+  local fmpsl="$script_dir/../Resources/solution.fmpsl"
+
+  local fm_app
+  fm_app=$(_find_fm) || {
+    osascript -e 'display alert "No compatible FileMaker version found." message "FileMaker Pro 16, 17, or 18 is required to open this solution."'
+    exit 1
+  }
+
+  open -a "$fm_app" "$fmpsl"
+}
+
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  _main "$@"
+fi
