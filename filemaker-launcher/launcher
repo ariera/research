@@ -5,15 +5,14 @@ set -euo pipefail
 # Prints the full .app path and returns 0 on success, 1 if none found.
 _find_fm() {
   local search_path="${1:-/Applications}"
-  local version name app
+  local version app
   for version in 18 17 16; do
-    for name in "FileMaker Pro $version" "FileMaker Pro Advanced $version"; do
-      app="$search_path/$name.app"
-      if [ -d "$app" ]; then
-        echo "$app"
-        return 0
-      fi
-    done
+    # Subdirectory install: /Applications/FileMaker Pro {N} Advanced/{name}.app
+    app="$search_path/FileMaker Pro $version Advanced/FileMaker Pro $version Advanced.app"
+    [ -d "$app" ] && echo "$app" && return 0
+    # Flat install: /Applications/FileMaker Pro {N}.app
+    app="$search_path/FileMaker Pro $version.app"
+    [ -d "$app" ] && echo "$app" && return 0
   done
   return 1
 }

@@ -54,20 +54,28 @@ T="$TMPBASE/t3"
 mkdir -p "$T/FileMaker Pro 16.app"
 assert_eq "uses v16 as last resort" "$T/FileMaker Pro 16.app" "$(_find_fm "$T")"
 
-# Test 4: finds Advanced variant when regular absent
+# Test 4: finds v18 Advanced in subdirectory install (real-world pattern)
 T="$TMPBASE/t4"
-mkdir -p "$T/FileMaker Pro Advanced 17.app"
-assert_eq "finds Advanced variant" "$T/FileMaker Pro Advanced 17.app" "$(_find_fm "$T")"
+mkdir -p "$T/FileMaker Pro 18 Advanced/FileMaker Pro 18 Advanced.app"
+assert_eq "finds v18 Advanced subdirectory install" \
+  "$T/FileMaker Pro 18 Advanced/FileMaker Pro 18 Advanced.app" \
+  "$(_find_fm "$T")"
 
-# Test 5: prefers regular over Advanced for same version
+# Test 5: subdirectory v18 Advanced beats flat v16
 T="$TMPBASE/t5"
-mkdir -p "$T/FileMaker Pro 18.app" "$T/FileMaker Pro Advanced 18.app"
-assert_eq "prefers regular over Advanced same version" "$T/FileMaker Pro 18.app" "$(_find_fm "$T")"
+mkdir -p "$T/FileMaker Pro 18 Advanced/FileMaker Pro 18 Advanced.app"
+mkdir -p "$T/FileMaker Pro 16.app"
+assert_eq "subdirectory v18 Advanced beats flat v16" \
+  "$T/FileMaker Pro 18 Advanced/FileMaker Pro 18 Advanced.app" \
+  "$(_find_fm "$T")"
 
-# Test 6: v18 Advanced beats v17 regular
+# Test 6: flat v18 beats subdirectory v17 Advanced
 T="$TMPBASE/t6"
-mkdir -p "$T/FileMaker Pro Advanced 18.app" "$T/FileMaker Pro 17.app"
-assert_eq "v18 Advanced beats v17 regular" "$T/FileMaker Pro Advanced 18.app" "$(_find_fm "$T")"
+mkdir -p "$T/FileMaker Pro 18.app"
+mkdir -p "$T/FileMaker Pro 17 Advanced/FileMaker Pro 17 Advanced.app"
+assert_eq "flat v18 beats subdirectory v17 Advanced" \
+  "$T/FileMaker Pro 18.app" \
+  "$(_find_fm "$T")"
 
 # Test 7: returns failure when no FM present
 T="$TMPBASE/t7"
