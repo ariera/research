@@ -152,7 +152,7 @@ The working crate lives in `string-permutation-kata/rust/`:
 - `src/mutations.rs` — `for_each_one_edit_neighbor` (callback-based, scratch `Vec<char>` reuse) and a `one_edit_neighbors` wrapper for tests. Each mutation class is guarded by its `EnabledOperations` flag.
 - `src/search.rs` — layered BFS over character vectors with a global `visited` set, per-layer best-cost map, and `(cost, chars)` ordering. Strings are reassembled only when a candidate is emitted.
 - `tests/search_tests.rs` — tests covering validation, mutation generation, ordering, deduplication, exact-distance, completeness, Unicode seeds, and per-operation flags.
-- `benches/search_bench.rs` — Criterion benchmark for `enumerate_candidates` on `"password"` with distance band `[1, 2]`.
+- `benches/search_bench.rs` — Criterion benchmark for `enumerate_candidates` on `"pattern"` with distance band `[1, 2]`.
 
 ### Configurable operations
 
@@ -177,8 +177,8 @@ The crate also ships a small binary for exploring a seed from the command line:
 ```bash
 cd string-permutation-kata/rust
 
-# distance 1 from "password", lowercase alphabet, QWERTY-weighted, show first 20
-cargo run --release --bin enumerate -- password --max 1 --qwerty --limit 20
+# distance 1 from "pattern", lowercase alphabet, QWERTY-weighted, show first 20
+cargo run --release --bin enumerate -- pattern --max 1 --qwerty --limit 20
 
 # distance 1..2 using letters+numbers preset
 cargo run --release --bin enumerate -- admin --min 1 --max 2 --preset letters-numbers
