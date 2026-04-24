@@ -116,3 +116,7 @@
   - Updated `search.rs` to consume the callback API, allocate Vec<u8> only for unique inserts, preallocate `next_layer_best`, and use `sort_unstable_by`.
   - Replaced deprecated `criterion::black_box` with `std::hint::black_box` in the bench.
   - Post-optimization: ~102 ms median — modest but measurable improvement and noticeably lower per-neighbor allocation churn.
+- Task 7 execution results:
+  - Added an "Implementation Direction" section to `README.md` that points at the working crate and its module responsibilities.
+  - Confirmed performance levers via benchmarking: byte-oriented search, reused scratch buffer, and FxHash-backed dedup dominate cost. UTF-8 conversion is only paid once per emitted candidate at the layer boundary.
+  - Final verification: all 11 tests pass and the benchmark completes at ~100 ms.

@@ -140,3 +140,16 @@ This gives the kata:
 - realistic typo-oriented behavior
 - deterministic testability
 - room for later extensions without changing the core problem
+
+## Implementation Direction
+
+The recommended implementation uses Rust with layered breadth-first enumeration over edit-distance bands. Internally it operates on byte vectors for performance and ranks candidates within each layer by cumulative likelihood cost.
+
+The working crate lives in `string-permutation-kata/rust/`:
+
+- `src/config.rs` — `SearchConfig` plus validation of alphabet and distance bounds.
+- `src/keyboard.rs` — `KeyboardNeighbors` lookup backed by `FxHashMap`.
+- `src/mutations.rs` — `for_each_one_edit_neighbor` (callback-based, scratch-buffer reuse) and a `one_edit_neighbors` wrapper for tests.
+- `src/search.rs` — layered BFS with a global `visited` set, per-layer best-cost map, and `(cost, bytes)` ordering.
+- `tests/search_tests.rs` — 11 tests covering validation, mutation generation, ordering, deduplication, exact-distance, and completeness.
+- `benches/search_bench.rs` — Criterion benchmark for `enumerate_candidates` on `"password"` with distance band `[1, 2]`.
