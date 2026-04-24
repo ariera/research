@@ -71,3 +71,31 @@
   - edit distance is defined by unit-cost allowed operations
   - likelihood weights are separate and only influence ordering within a distance layer
 - User reviewed the spec and requested that the current kata folder state be committed.
+- New phase: move from kata definition to implementation planning.
+- User asked about implementation language with performance as a critical requirement.
+- Environment check:
+  - `rustc 1.95.0`
+  - `cargo 1.95.0`
+- Preliminary language conclusion:
+  - Rust remains the strongest default.
+  - Best practical alternative is Go for simpler implementation, but with weaker peak control over allocation and data layout.
+- Began subagent-driven execution of the Rust plan.
+- Task 1 review outcome:
+  - Initial worker added unrequested vendoring to work around offline dependency resolution; this was removed.
+  - Exact Task 1 scaffold now matches the requested file contents.
+  - Network-enabled verification showed a plan inconsistency: the exact `mod ...;` scaffold necessarily fails on missing module files until Task 2 creates them.
+- Corrected the implementation plan so Task 1 now expects missing module-file errors after the scaffold is added.
+- Pre-Task-2 plan audit found two more issues and corrected them:
+  - Task 2 now creates placeholder `mutations.rs` and `search.rs` so the crate compiles while config/validation is implemented.
+  - Task 3 now explicitly re-exports `one_edit_neighbors` from `lib.rs`.
+  - Task 5's exact one-edit neighborhood example was corrected to include `\"ba\"`.
+- Task 2 execution results:
+  - Rust code changes for `config.rs`, `keyboard.rs`, and the placeholder modules look correct.
+  - Another plan wording issue was found and fixed: Task 2's red-state expectation now matches the actual missing-module failure before those files are created.
+  - Cleanup is required because subagents created extra report folders and Rust build artifacts outside Task 2 scope.
+- Task 3 execution results:
+  - Implemented weighted one-edit mutation generation in Rust.
+  - Added public exports for `one_edit_neighbors` and `NeighborCandidate`.
+  - Added regression coverage to avoid no-op adjacent swaps for identical bytes.
+  - Verified focused Task 3 tests passed before committing.
+- User requested committing and pushing the current checkpoint so another agent can continue.
