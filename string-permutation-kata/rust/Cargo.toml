@@ -1,0 +1,11 @@
+[package]
+name = "string-neighborhood-kata"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+rustc-hash = "2"
+smallvec = "1"
+
+[dev-dependencies]
+criterion = "0.7"
