@@ -126,3 +126,8 @@
   - Introduced `EnabledOperations { insert, delete, replace, swap }` (defaults to all enabled) plus a `SearchConfig::with_enabled_operations` builder method. Each mutation class in `for_each_one_edit_neighbor` is guarded by its flag.
   - Ported reviewer repros into the kata's own test suite: `handles_unicode_seed_without_invalid_utf8_error`, `enumeration_treats_multibyte_character_as_single_edit`, and operation-flag tests. Rewrote the external `string-permutation-kata-review/repro` tests to exercise the fixed API.
   - Post-fix: 15 tests pass in `string-permutation-kata/rust`; 2 repro tests pass in the review folder.
+- CLI addition (2026-04-24):
+  - Added `clap` dependency and a `src/bin/enumerate.rs` binary that takes a seed and exposes `--min`, `--max`, `--preset`, `--alphabet`, `--qwerty`, `--limit`, `--quiet` flags.
+  - Preset alphabets cover `lowercase`, `letters`, `letters-numbers`, `letters-numbers-symbols` (common password symbol set), and `full-ascii`.
+  - QWERTY US-layout neighbor map is embedded and enabled via `--qwerty` so typo-style replacements rank ahead of arbitrary replacements within a distance layer.
+  - Smoke-tested against `password` (439 distance-1 candidates) and a Unicode `café` seed.

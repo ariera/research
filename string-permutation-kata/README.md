@@ -169,3 +169,32 @@ let config = SearchConfig::new(seed, alphabet, 1, 2, keyboard_neighbors)?
 ```
 
 This lets callers match the contract's "enabled operations" input and shape reachability accordingly.
+
+### CLI
+
+The crate also ships a small binary for exploring a seed from the command line:
+
+```bash
+cd string-permutation-kata/rust
+
+# distance 1 from "password", lowercase alphabet, QWERTY-weighted, show first 20
+cargo run --release --bin enumerate -- password --max 1 --qwerty --limit 20
+
+# distance 1..2 using letters+numbers preset
+cargo run --release --bin enumerate -- admin --min 1 --max 2 --preset letters-numbers
+
+# custom alphabet, including Unicode
+cargo run --release --bin enumerate -- "café" --alphabet "café" --max 1
+```
+
+Alphabet presets (use with `--preset`):
+
+| Preset | Characters | Size |
+|---|---|---|
+| `lowercase` (default) | `a-z` | 26 |
+| `letters` | `a-zA-Z` | 52 |
+| `letters-numbers` | `a-zA-Z0-9` | 62 |
+| `letters-numbers-symbols` | alphanumeric + `!@#$%^&*()_+-=[]{}|;:,.<>?/~` | ~78 |
+| `full-ascii` | all printable ASCII | 95 |
+
+`--alphabet "…"` lets you pass any custom character set and overrides `--preset`. `--qwerty` loads a US-layout neighbor map so likely typos rank ahead of arbitrary replacements within the same edit-distance layer. `--limit N` caps the printed output (full count still reported on stderr).
