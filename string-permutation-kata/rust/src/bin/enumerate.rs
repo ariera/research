@@ -46,9 +46,9 @@ enum AlphabetPreset {
     Lowercase,
     /// Letters a-z and A-Z (52 chars)
     Letters,
-    /// Letters and digits a-zA-Z0-9 (62 chars)
+    /// Letters, digits, and space a-zA-Z0-9 (63 chars)
     LettersNumbers,
-    /// Letters, digits, and common password symbols (~78 chars)
+    /// Letters, digits, space, and common password symbols (~79 chars)
     LettersNumbersSymbols,
     /// All printable ASCII (95 chars)
     FullAscii,
@@ -59,10 +59,15 @@ impl AlphabetPreset {
         match self {
             Self::Lowercase => ('a'..='z').collect(),
             Self::Letters => ('a'..='z').chain('A'..='Z').collect(),
-            Self::LettersNumbers => ('a'..='z').chain('A'..='Z').chain('0'..='9').collect(),
+            Self::LettersNumbers => ('a'..='z')
+                .chain('A'..='Z')
+                .chain('0'..='9')
+                .chain(std::iter::once(' '))
+                .collect(),
             Self::LettersNumbersSymbols => ('a'..='z')
                 .chain('A'..='Z')
                 .chain('0'..='9')
+                .chain(std::iter::once(' '))
                 .chain(password_symbols().iter().copied())
                 .collect(),
             Self::FullAscii => (32u8..127).map(|b| b as char).collect(),
@@ -106,6 +111,24 @@ fn qwerty_neighbors() -> KeyboardNeighbors {
         ('n', &['b', 'h', 'j', 'm']),
         ('m', &['n', 'j', 'k']),
     ])
+}
+
+#[cfg(test)]
+mod tests {
+    use clap::Parser;
+
+    use super::{AlphabetPreset, Cli};
+
+    #[test]
+    fn letters_numbers_cli_preset_includes_space() {
+        let cli = Cli::try_parse_from(["enumerate", "a b", "--preset", "letters-numbers"]).unwrap();
+        let AlphabetPreset::LettersNumbers = cli.preset else {
+            panic!("expected letters-numbers preset");
+        };
+        let alphabet = cli.preset.chars();
+
+        assert!(alphabet.contains(&' '));
+    }
 }
 
 fn main() -> ExitCode {

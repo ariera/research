@@ -193,8 +193,8 @@ Alphabet presets (use with `--preset`):
 |---|---|---|
 | `lowercase` (default) | `a-z` | 26 |
 | `letters` | `a-zA-Z` | 52 |
-| `letters-numbers` | `a-zA-Z0-9` | 62 |
-| `letters-numbers-symbols` | alphanumeric + `!@#$%^&*()_+-=[]{}|;:,.<>?/~` | ~78 |
+| `letters-numbers` | `a-zA-Z0-9` plus space | 63 |
+| `letters-numbers-symbols` | letters, numbers, space + `!@#$%^&*()_+-=[]{}|;:,.<>?/~` | ~79 |
 | `full-ascii` | all printable ASCII | 95 |
 
 `--alphabet "…"` lets you pass any custom character set and overrides `--preset`. `--qwerty` loads a US-layout neighbor map so likely typos rank ahead of arbitrary replacements within the same edit-distance layer. `--limit N` caps the printed output (full count still reported on stderr).
