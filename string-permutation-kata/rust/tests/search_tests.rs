@@ -83,3 +83,36 @@ fn identical_adjacent_swap_does_not_emit_seed() {
 
     assert!(!neighbors.iter().any(|item| item.candidate == b"aa".to_vec()));
 }
+
+#[test]
+fn excludes_seed_when_min_distance_is_one() {
+    let config = SearchConfig::new("ab", b"ab".to_vec(), 1, 1, KeyboardNeighbors::empty()).unwrap();
+    let result = enumerate_candidates(&config).unwrap();
+    assert!(!result.contains(&"ab".to_string()));
+}
+
+#[test]
+fn orders_distance_before_likelihood() {
+    let config = SearchConfig::new(
+        "ab",
+        b"abc".to_vec(),
+        1,
+        2,
+        KeyboardNeighbors::from_pairs(&[(b'a', b"b")]),
+    )
+    .unwrap();
+
+    let result = enumerate_candidates(&config).unwrap();
+    let one_edit_index = result.iter().position(|item| item == "bb").unwrap();
+    let two_edit_index = result.iter().position(|item| item == "cbc").unwrap();
+
+    assert!(one_edit_index < two_edit_index);
+}
+
+#[test]
+fn deduplicates_candidates_reachable_by_multiple_paths() {
+    let config = SearchConfig::new("aa", b"ab".to_vec(), 1, 2, KeyboardNeighbors::empty()).unwrap();
+    let result = enumerate_candidates(&config).unwrap();
+    let count = result.iter().filter(|item| *item == "a").count();
+    assert_eq!(count, 1);
+}

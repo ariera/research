@@ -99,3 +99,8 @@
   - Added regression coverage to avoid no-op adjacent swaps for identical bytes.
   - Verified focused Task 3 tests passed before committing.
 - User requested committing and pushing the current checkpoint so another agent can continue.
+- Task 4 execution results:
+  - Added three failing search tests: min-distance exclusion, distance-before-likelihood ordering, dedup across multi-path candidates.
+  - Confirmed red state via the dedup test hitting the `todo!` in `enumerate_candidates`.
+  - Implemented layered BFS in `src/search.rs` with `FxHashSet` visited set, per-layer `FxHashMap` best-cost map, and stable `(cost, bytes)` sort.
+  - All 9 tests in `search_tests.rs` pass.
