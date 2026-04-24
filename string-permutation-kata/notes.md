@@ -1,0 +1,73 @@
+# Notes
+
+## 2026-04-24
+
+- Created investigation folder: `string-permutation-kata/`.
+- Reviewed workspace context:
+  - Existing repo contains prior research folders and top-level docs.
+  - Git worktree was clean before starting this investigation.
+- Reviewed required process skills:
+  - `using-superpowers`: check and use relevant skills before acting.
+  - `brainstorming`: do not implement yet; first clarify scope, compare approaches, present design, then get approval.
+- Initial interpretation of the request:
+  - User wants a coding kata around generating strings from a seed string.
+  - Key ambiguity: whether "all possible paths" means permutations only, insert/delete/substitute expansions, or an edit-graph traversal over strings of varying length.
+- Immediate next step:
+  - Clarify the exact generation model before defining the kata.
+- User clarified that the intended problem is a mix of:
+  - edit-graph traversal (`insert`/`delete`/`replace`-style variation), and
+  - variable-length generation over the seed alphabet.
+- Refined ambiguity:
+  - Need to define whether the kata is about exhaustive enumeration, shortest-path exploration, bounded search, or counting/coverage guarantees.
+- User provided a concrete anchor scenario:
+  - A remembered password is close to the true string but not exact.
+  - Desired exercise: starting from a seed string, systematically explore nearby strings under explicit constraints.
+  - Success condition: if the unknown target string is inside the allowed search neighborhood, the algorithm will eventually generate it.
+- Safety/product framing:
+  - Keep the kata generic and offline: "bounded string-neighborhood enumeration" rather than a tool for trying passwords against real services.
+- Emerging kata shape:
+  - Input: seed string plus mutation constraints.
+  - Output: exhaustive generation of all reachable candidate strings within the bounds, ideally without duplicates.
+- User asked for the most efficient strategy, in the password-recovery framing, that still guarantees coverage.
+- Key design implication:
+  - Efficiency should mean "find likely nearby strings early while still guaranteeing eventual coverage of the whole bounded neighborhood."
+  - This points toward ordered exploration of edit distance layers rather than unconstrained Cartesian generation.
+- Weighted likelihood is the next major design fork:
+  - Unweighted BFS gives simplest guarantee and deterministic ordering by edit distance.
+  - Weighted search reorders candidates so more plausible mutations appear earlier.
+  - Weights do not usually reduce the guaranteed search space; they mainly improve expected time-to-hit if the weighting model is good.
+- Likely recommendation for kata:
+  - Keep completeness defined by max edit distance.
+  - Optionally rank candidates within each distance layer by mutation likelihood.
+- User asked for concrete kata variants comparing unweighted and weighted search.
+- Planned options to present:
+  - Pure BFS by edit distance
+  - Layered search with weighted ordering inside each distance layer
+  - Fully weighted best-first search
+- Expected recommendation:
+  - Layered + weighted ordering, because it keeps the clean completeness proof while improving early candidate quality.
+- User selected option 2: layered search with weighted ordering inside each edit-distance layer.
+- User added a useful refinement:
+  - The algorithm should accept an optional lower bound as well as an upper bound on edit distance.
+  - This changes the search target from a ball around the seed to a distance band `[min_distance, max_distance]`.
+- Implications of lower bound:
+  - Candidate generation still explores from the seed outward.
+  - Output filtering must exclude candidates with distance below `min_distance`.
+  - Tests can separately assert completeness for exact or ranged distances.
+- User approved the problem definition:
+  - Generate all distinct strings reachable from the seed within distance band `[min_distance, max_distance]`.
+  - Traverse by increasing edit distance; rank within each layer by likelihood.
+- User approved the proposed API/behavior contract:
+  - Inputs: seed, alphabet, min/max distance, allowed operations.
+  - Output: ordered, deduplicated candidate sequence.
+  - Ordering: distance first, likelihood second, deterministic tie-breaker.
+- User approved the final design section with one change:
+  - keyboard-neighbor replace and arbitrary replace should both be part of the initial scoring model, not deferred.
+- Refined scoring direction:
+  - adjacent swap, delete, insert, keyboard-neighbor replace, and arbitrary replace are all in scope now.
+  - keyboard-neighbor replace should rank ahead of arbitrary replace within the same edit-distance layer.
+- Wrote the current design into `string-permutation-kata/README.md`.
+- Self-review caught and fixed one ambiguity:
+  - edit distance is defined by unit-cost allowed operations
+  - likelihood weights are separate and only influence ordering within a distance layer
+- User reviewed the spec and requested that the current kata folder state be committed.
