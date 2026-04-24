@@ -104,3 +104,8 @@
   - Confirmed red state via the dedup test hitting the `todo!` in `enumerate_candidates`.
   - Implemented layered BFS in `src/search.rs` with `FxHashSet` visited set, per-layer `FxHashMap` best-cost map, and stable `(cost, bytes)` sort.
   - All 9 tests in `search_tests.rs` pass.
+- Task 5 execution results:
+  - Added completeness tests: exact one-edit neighborhood over small alphabet, and exact-distance band.
+  - Both tests passed immediately against the Task 4 implementation — no tightening in `src/search.rs` was required.
+  - Plan deviation: Task 5 Step 3 was a no-op because the Task 4 BFS already emits the correct dedup ordering. Recorded here for traceability.
+  - All 11 tests pass.

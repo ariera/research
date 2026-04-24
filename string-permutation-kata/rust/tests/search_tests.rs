@@ -116,3 +116,19 @@ fn deduplicates_candidates_reachable_by_multiple_paths() {
     let count = result.iter().filter(|item| *item == "a").count();
     assert_eq!(count, 1);
 }
+
+#[test]
+fn emits_exact_one_edit_neighborhood_for_small_alphabet() {
+    let config = SearchConfig::new("a", b"ab".to_vec(), 1, 1, KeyboardNeighbors::empty()).unwrap();
+    let result = enumerate_candidates(&config).unwrap();
+    let expected = vec!["", "aa", "ab", "ba", "b"];
+    assert_eq!(result, expected);
+}
+
+#[test]
+fn supports_exact_distance_band() {
+    let config = SearchConfig::new("ab", b"ab".to_vec(), 2, 2, KeyboardNeighbors::empty()).unwrap();
+    let result = enumerate_candidates(&config).unwrap();
+    assert!(result.iter().all(|candidate| candidate != "ab"));
+    assert!(!result.is_empty());
+}
