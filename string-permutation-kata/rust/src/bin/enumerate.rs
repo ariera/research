@@ -48,7 +48,7 @@ enum AlphabetPreset {
     Letters,
     /// Letters, digits, and space a-zA-Z0-9 (63 chars)
     LettersNumbers,
-    /// Letters, digits, space, and common password symbols (~79 chars)
+    /// Letters, digits, space, and common symbols (~79 chars)
     LettersNumbersSymbols,
     /// All printable ASCII (95 chars)
     FullAscii,
@@ -68,14 +68,14 @@ impl AlphabetPreset {
                 .chain('A'..='Z')
                 .chain('0'..='9')
                 .chain(std::iter::once(' '))
-                .chain(password_symbols().iter().copied())
+                .chain(common_symbols().iter().copied())
                 .collect(),
             Self::FullAscii => (32u8..127).map(|b| b as char).collect(),
         }
     }
 }
 
-fn password_symbols() -> &'static [char] {
+fn common_symbols() -> &'static [char] {
     &[
         '!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '_', '+', '-', '=', '[', ']', '{', '}',
         '|', ';', ':', ',', '.', '<', '>', '?', '/', '~',

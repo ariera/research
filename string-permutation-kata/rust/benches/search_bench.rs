@@ -6,7 +6,7 @@ use string_neighborhood_kata::{enumerate_candidates, KeyboardNeighbors, SearchCo
 fn benchmark_medium_search(c: &mut Criterion) {
     let alphabet: Vec<char> = ('a'..='z').collect();
     let config = SearchConfig::new(
-        "password",
+        "pattern",
         alphabet,
         1,
         2,
@@ -18,7 +18,7 @@ fn benchmark_medium_search(c: &mut Criterion) {
     )
     .unwrap();
 
-    c.bench_function("enumerate password distance 1..2", |b| {
+    c.bench_function("enumerate pattern distance 1..2", |b| {
         b.iter(|| {
             let result = enumerate_candidates(black_box(&config)).unwrap();
             black_box(result.len())
