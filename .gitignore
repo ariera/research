@@ -8,3 +8,7 @@ node_modules/
 .DS_Store
 *.swp
 *.swo
+
+# Rust kata build artifacts
+string-permutation-kata/rust/target/
+string-permutation-kata/rust/Cargo.lock
