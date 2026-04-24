@@ -9,3 +9,7 @@ smallvec = "1"
 
 [dev-dependencies]
 criterion = "0.7"
+
+[[bench]]
+name = "search_bench"
+harness = false

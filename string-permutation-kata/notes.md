@@ -109,3 +109,10 @@
   - Both tests passed immediately against the Task 4 implementation — no tightening in `src/search.rs` was required.
   - Plan deviation: Task 5 Step 3 was a no-op because the Task 4 BFS already emits the correct dedup ordering. Recorded here for traceability.
   - All 11 tests pass.
+- Task 6 execution results:
+  - Added `benches/search_bench.rs` and registered `[[bench]]` with `harness = false` in `Cargo.toml`.
+  - Baseline for `enumerate password distance 1..2`: ~105 ms median.
+  - Refactored `mutations.rs` to expose `for_each_one_edit_neighbor(seed, config, emit)` using a reused scratch buffer; `one_edit_neighbors` is now a thin wrapper for tests.
+  - Updated `search.rs` to consume the callback API, allocate Vec<u8> only for unique inserts, preallocate `next_layer_best`, and use `sort_unstable_by`.
+  - Replaced deprecated `criterion::black_box` with `std::hint::black_box` in the bench.
+  - Post-optimization: ~102 ms median — modest but measurable improvement and noticeably lower per-neighbor allocation churn.
