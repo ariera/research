@@ -11,7 +11,7 @@ pub fn open_database(path: &Path, password: &str) -> Result<(), OpenError> {
     let mut reader = BufReader::new(file);
     let key = DatabaseKey::new().with_password(password);
 
-    Database::open(&mut reader, key)
+    Database::get_xml(&mut reader, key)
         .map(|_| ())
         .map_err(OpenError::from_keepass_error)
 }

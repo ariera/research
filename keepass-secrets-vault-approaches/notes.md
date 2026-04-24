@@ -43,3 +43,10 @@
 - Ran `cargo fmt` to normalize the Rust source layout.
 - Ran `cargo test` and confirmed the full crate is green: 7 integration tests passed, 0 failed.
 - Updated `README.md` with explicit CLI build instructions, direct-binary usage, exit-code behavior, and shell examples.
+- User reported a real-world failure: assets/qwerty.kdbx opens in MacPass with password qwerty, but the CLI returns corrupt-db.
+- Starting systematic debugging: reproduce the failure, inspect the underlying keepass crate error, then adjust the implementation based on the actual cause.
+- Reproduced the failure with a regression test against assets/qwerty.kdbx.
+- Root cause: keepass 0.10.6 rejects a valid KDBX3 XML element, PreviousParentGroup, with Format(Kdbx3(Xml(Xml(Custom("unknown variant ..."))))).
+- This is not a bad password and not file corruption; it is an unsupported parser case in the underlying crate.
+- Hypothesis: using Database::get_xml instead of Database::open will accept valid databases whose decrypted XML contains fields unsupported by the keepass crate object model, while still rejecting wrong passwords and broken files.
+- Switched validation from Database::open to Database::get_xml so successful password-based decryption is not blocked by unsupported XML elements in the keepass crate object model.

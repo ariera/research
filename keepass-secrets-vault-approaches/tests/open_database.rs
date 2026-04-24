@@ -64,3 +64,17 @@ fn boolean_helper_tracks_primary_api() {
     assert!(can_open_database(Path::new(&path), "password"));
     assert!(!can_open_database(Path::new(&path), "wrong-password"));
 }
+
+#[test]
+fn opens_real_qwerty_fixture() {
+    let path = Path::new("assets/qwerty.kdbx");
+    let mut file = fs::File::open(path).expect("open real fixture");
+    let raw_result = Database::open(&mut file, DatabaseKey::new().with_password("qwerty"));
+
+    let result = open_database(path, "qwerty");
+
+    assert!(
+        result.is_ok(),
+        "expected fixture to open, got {result:?}; raw keepass result: {raw_result:?}"
+    );
+}
