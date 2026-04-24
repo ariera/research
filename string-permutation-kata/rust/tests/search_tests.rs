@@ -1,12 +1,12 @@
 use string_neighborhood_kata::{
-    enumerate_candidates, KeyboardNeighbors, SearchConfig,
+    enumerate_candidates, EnabledOperations, KeyboardNeighbors, SearchConfig,
 };
 
 #[test]
 fn returns_seed_when_distance_band_is_zero() {
     let config = SearchConfig::new(
         "abc",
-        b"abc".to_vec(),
+        vec!['a', 'b', 'c'],
         0,
         0,
         KeyboardNeighbors::empty(),
@@ -20,13 +20,25 @@ fn returns_seed_when_distance_band_is_zero() {
 
 #[test]
 fn rejects_min_distance_greater_than_max_distance() {
-    let result = SearchConfig::new("abc", b"abc".to_vec(), 2, 1, KeyboardNeighbors::empty());
+    let result = SearchConfig::new(
+        "abc",
+        vec!['a', 'b', 'c'],
+        2,
+        1,
+        KeyboardNeighbors::empty(),
+    );
     assert!(result.is_err());
 }
 
 #[test]
-fn rejects_seed_with_bytes_outside_alphabet() {
-    let result = SearchConfig::new("abd", b"abc".to_vec(), 0, 1, KeyboardNeighbors::empty());
+fn rejects_seed_with_characters_outside_alphabet() {
+    let result = SearchConfig::new(
+        "abd",
+        vec!['a', 'b', 'c'],
+        0,
+        1,
+        KeyboardNeighbors::empty(),
+    );
     assert!(result.is_err());
 }
 
@@ -34,41 +46,49 @@ fn rejects_seed_with_bytes_outside_alphabet() {
 fn generates_insert_delete_replace_and_swap_neighbors() {
     let config = SearchConfig::new(
         "ab",
-        b"abc".to_vec(),
+        vec!['a', 'b', 'c'],
         1,
         1,
-        KeyboardNeighbors::from_pairs(&[(b'a', b"b"), (b'b', b"a")]),
+        KeyboardNeighbors::from_pairs(&[('a', &['b']), ('b', &['a'])]),
     )
     .unwrap();
 
-    let neighbors = string_neighborhood_kata::one_edit_neighbors(config.seed.as_bytes(), &config);
+    let seed_chars: Vec<char> = config.seed.chars().collect();
+    let neighbors = string_neighborhood_kata::one_edit_neighbors(&seed_chars, &config);
 
-    assert!(neighbors.iter().any(|item| item.candidate == b"a".to_vec()));
-    assert!(neighbors.iter().any(|item| item.candidate == b"abc".to_vec()));
-    assert!(neighbors.iter().any(|item| item.candidate == b"ba".to_vec()));
-    assert!(neighbors.iter().any(|item| item.candidate == b"bb".to_vec()));
+    assert!(neighbors.iter().any(|item| item.candidate == vec!['a']));
+    assert!(neighbors
+        .iter()
+        .any(|item| item.candidate == vec!['a', 'b', 'c']));
+    assert!(neighbors
+        .iter()
+        .any(|item| item.candidate == vec!['b', 'a']));
+    assert!(neighbors
+        .iter()
+        .any(|item| item.candidate == vec!['b', 'b']));
 }
 
 #[test]
 fn keyboard_neighbor_replace_costs_less_than_arbitrary_replace() {
     let config = SearchConfig::new(
         "ab",
-        b"abc".to_vec(),
+        vec!['a', 'b', 'c'],
         1,
         1,
-        KeyboardNeighbors::from_pairs(&[(b'a', b"b")]),
+        KeyboardNeighbors::from_pairs(&[('a', &['b'])]),
     )
     .unwrap();
 
-    let neighbors = string_neighborhood_kata::one_edit_neighbors(config.seed.as_bytes(), &config);
+    let seed_chars: Vec<char> = config.seed.chars().collect();
+    let neighbors = string_neighborhood_kata::one_edit_neighbors(&seed_chars, &config);
     let keyboard_cost = neighbors
         .iter()
-        .find(|item| item.candidate == b"bb".to_vec())
+        .find(|item| item.candidate == vec!['b', 'b'])
         .unwrap()
         .likelihood_cost;
     let arbitrary_cost = neighbors
         .iter()
-        .find(|item| item.candidate == b"cb".to_vec())
+        .find(|item| item.candidate == vec!['c', 'b'])
         .unwrap()
         .likelihood_cost;
 
@@ -77,16 +97,19 @@ fn keyboard_neighbor_replace_costs_less_than_arbitrary_replace() {
 
 #[test]
 fn identical_adjacent_swap_does_not_emit_seed() {
-    let config = SearchConfig::new("aa", b"a".to_vec(), 1, 1, KeyboardNeighbors::empty()).unwrap();
+    let config = SearchConfig::new("aa", vec!['a'], 1, 1, KeyboardNeighbors::empty()).unwrap();
 
-    let neighbors = string_neighborhood_kata::one_edit_neighbors(config.seed.as_bytes(), &config);
+    let seed_chars: Vec<char> = config.seed.chars().collect();
+    let neighbors = string_neighborhood_kata::one_edit_neighbors(&seed_chars, &config);
 
-    assert!(!neighbors.iter().any(|item| item.candidate == b"aa".to_vec()));
+    assert!(!neighbors
+        .iter()
+        .any(|item| item.candidate == vec!['a', 'a']));
 }
 
 #[test]
 fn excludes_seed_when_min_distance_is_one() {
-    let config = SearchConfig::new("ab", b"ab".to_vec(), 1, 1, KeyboardNeighbors::empty()).unwrap();
+    let config = SearchConfig::new("ab", vec!['a', 'b'], 1, 1, KeyboardNeighbors::empty()).unwrap();
     let result = enumerate_candidates(&config).unwrap();
     assert!(!result.contains(&"ab".to_string()));
 }
@@ -95,10 +118,10 @@ fn excludes_seed_when_min_distance_is_one() {
 fn orders_distance_before_likelihood() {
     let config = SearchConfig::new(
         "ab",
-        b"abc".to_vec(),
+        vec!['a', 'b', 'c'],
         1,
         2,
-        KeyboardNeighbors::from_pairs(&[(b'a', b"b")]),
+        KeyboardNeighbors::from_pairs(&[('a', &['b'])]),
     )
     .unwrap();
 
@@ -111,7 +134,7 @@ fn orders_distance_before_likelihood() {
 
 #[test]
 fn deduplicates_candidates_reachable_by_multiple_paths() {
-    let config = SearchConfig::new("aa", b"ab".to_vec(), 1, 2, KeyboardNeighbors::empty()).unwrap();
+    let config = SearchConfig::new("aa", vec!['a', 'b'], 1, 2, KeyboardNeighbors::empty()).unwrap();
     let result = enumerate_candidates(&config).unwrap();
     let count = result.iter().filter(|item| *item == "a").count();
     assert_eq!(count, 1);
@@ -119,7 +142,7 @@ fn deduplicates_candidates_reachable_by_multiple_paths() {
 
 #[test]
 fn emits_exact_one_edit_neighborhood_for_small_alphabet() {
-    let config = SearchConfig::new("a", b"ab".to_vec(), 1, 1, KeyboardNeighbors::empty()).unwrap();
+    let config = SearchConfig::new("a", vec!['a', 'b'], 1, 1, KeyboardNeighbors::empty()).unwrap();
     let result = enumerate_candidates(&config).unwrap();
     let expected = vec!["", "aa", "ab", "ba", "b"];
     assert_eq!(result, expected);
@@ -127,8 +150,70 @@ fn emits_exact_one_edit_neighborhood_for_small_alphabet() {
 
 #[test]
 fn supports_exact_distance_band() {
-    let config = SearchConfig::new("ab", b"ab".to_vec(), 2, 2, KeyboardNeighbors::empty()).unwrap();
+    let config = SearchConfig::new("ab", vec!['a', 'b'], 2, 2, KeyboardNeighbors::empty()).unwrap();
     let result = enumerate_candidates(&config).unwrap();
     assert!(result.iter().all(|candidate| candidate != "ab"));
     assert!(!result.is_empty());
+}
+
+#[test]
+fn handles_unicode_seed_without_invalid_utf8_error() {
+    let config =
+        SearchConfig::new("é", vec!['é', 'a'], 1, 1, KeyboardNeighbors::empty()).unwrap();
+
+    let result = enumerate_candidates(&config).unwrap();
+
+    assert!(result.iter().any(|candidate| candidate == "a"));
+    assert!(result.iter().any(|candidate| candidate == "aé"));
+    assert!(result.iter().any(|candidate| candidate == "éa"));
+}
+
+#[test]
+fn enumeration_treats_multibyte_character_as_single_edit() {
+    let config = SearchConfig::new(
+        "café",
+        vec!['c', 'a', 'f', 'é'],
+        1,
+        1,
+        KeyboardNeighbors::empty(),
+    )
+    .unwrap();
+
+    let result = enumerate_candidates(&config).unwrap();
+
+    assert!(result.iter().any(|candidate| candidate == "caf"));
+    assert!(result.iter().any(|candidate| candidate == "caéf"));
+    assert!(result.iter().all(|candidate| candidate != "café"));
+}
+
+#[test]
+fn disables_insert_operation_when_flag_is_off() {
+    let ops = EnabledOperations {
+        insert: false,
+        ..EnabledOperations::default()
+    };
+    let config = SearchConfig::new("a", vec!['a', 'b'], 1, 1, KeyboardNeighbors::empty())
+        .unwrap()
+        .with_enabled_operations(ops);
+
+    let result = enumerate_candidates(&config).unwrap();
+
+    assert!(result.iter().all(|candidate| candidate.chars().count() <= 1));
+}
+
+#[test]
+fn disables_swap_operation_when_flag_is_off() {
+    let ops = EnabledOperations {
+        swap: false,
+        insert: false,
+        delete: false,
+        replace: false,
+    };
+    let config = SearchConfig::new("ab", vec!['a', 'b'], 1, 1, KeyboardNeighbors::empty())
+        .unwrap()
+        .with_enabled_operations(ops);
+
+    let result = enumerate_candidates(&config).unwrap();
+
+    assert!(result.is_empty());
 }

@@ -143,13 +143,29 @@ This gives the kata:
 
 ## Implementation Direction
 
-The recommended implementation uses Rust with layered breadth-first enumeration over edit-distance bands. Internally it operates on byte vectors for performance and ranks candidates within each layer by cumulative likelihood cost.
+The recommended implementation uses Rust with layered breadth-first enumeration over edit-distance bands. Internally it operates on character vectors (`Vec<char>`) so edits respect Unicode scalar-value boundaries instead of UTF-8 byte boundaries. Candidates are ranked within each layer by cumulative likelihood cost.
 
 The working crate lives in `string-permutation-kata/rust/`:
 
-- `src/config.rs` — `SearchConfig` plus validation of alphabet and distance bounds.
-- `src/keyboard.rs` — `KeyboardNeighbors` lookup backed by `FxHashMap`.
-- `src/mutations.rs` — `for_each_one_edit_neighbor` (callback-based, scratch-buffer reuse) and a `one_edit_neighbors` wrapper for tests.
-- `src/search.rs` — layered BFS with a global `visited` set, per-layer best-cost map, and `(cost, bytes)` ordering.
-- `tests/search_tests.rs` — 11 tests covering validation, mutation generation, ordering, deduplication, exact-distance, and completeness.
+- `src/config.rs` — `SearchConfig` plus `EnabledOperations` flags and validation of alphabet and distance bounds.
+- `src/keyboard.rs` — `KeyboardNeighbors` lookup over `char` pairs, backed by `FxHashMap`.
+- `src/mutations.rs` — `for_each_one_edit_neighbor` (callback-based, scratch `Vec<char>` reuse) and a `one_edit_neighbors` wrapper for tests. Each mutation class is guarded by its `EnabledOperations` flag.
+- `src/search.rs` — layered BFS over character vectors with a global `visited` set, per-layer best-cost map, and `(cost, chars)` ordering. Strings are reassembled only when a candidate is emitted.
+- `tests/search_tests.rs` — tests covering validation, mutation generation, ordering, deduplication, exact-distance, completeness, Unicode seeds, and per-operation flags.
 - `benches/search_bench.rs` — Criterion benchmark for `enumerate_candidates` on `"password"` with distance band `[1, 2]`.
+
+### Configurable operations
+
+`SearchConfig` defaults to all five documented operation classes enabled. Use `with_enabled_operations` to restrict the search:
+
+```rust
+let config = SearchConfig::new(seed, alphabet, 1, 2, keyboard_neighbors)?
+    .with_enabled_operations(EnabledOperations {
+        insert: false,
+        delete: true,
+        replace: true,
+        swap: false,
+    });
+```
+
+This lets callers match the contract's "enabled operations" input and shape reachability accordingly.

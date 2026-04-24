@@ -120,3 +120,9 @@
   - Added an "Implementation Direction" section to `README.md` that points at the working crate and its module responsibilities.
   - Confirmed performance levers via benchmarking: byte-oriented search, reused scratch buffer, and FxHash-backed dedup dominate cost. UTF-8 conversion is only paid once per emitted candidate at the layer boundary.
   - Final verification: all 11 tests pass and the benchmark completes at ~100 ms.
+- Post-review follow-up (2026-04-24):
+  - Review folder `string-permutation-kata-review` flagged three findings: (1) Unicode seeds broke `enumerate_candidates` because edits happened at byte offsets; (2) invalid-UTF-8 alphabet bytes were accepted; (3) the documented `enabled operations` input was not wired into `SearchConfig`.
+  - Migrated the public API from `Vec<u8>` to `Vec<char>`: alphabet, keyboard neighbors, mutation scratch buffer, visited set, and layer-best map are all char-based. `enumerate_candidates` assembles strings from `Vec<char>` via `iter().collect()` and no longer uses `String::from_utf8`.
+  - Introduced `EnabledOperations { insert, delete, replace, swap }` (defaults to all enabled) plus a `SearchConfig::with_enabled_operations` builder method. Each mutation class in `for_each_one_edit_neighbor` is guarded by its flag.
+  - Ported reviewer repros into the kata's own test suite: `handles_unicode_seed_without_invalid_utf8_error`, `enumeration_treats_multibyte_character_as_single_edit`, and operation-flag tests. Rewrote the external `string-permutation-kata-review/repro` tests to exercise the fixed API.
+  - Post-fix: 15 tests pass in `string-permutation-kata/rust`; 2 repro tests pass in the review folder.

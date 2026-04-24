@@ -138,3 +138,11 @@ Choose one contract and enforce it consistently:
    - Keep UTF-8 conversion outside the core search.
 
 For the documented kata, option 1 matches the current README best. Separately, add operation flags to `SearchConfig` or remove `enabled operations` from the contract.
+
+## Resolution
+
+All three findings were addressed by migrating the kata to the character-string API (option 1 above):
+
+- `SearchConfig` now stores `seed_chars: Arc<[char]>` and `alphabet: Arc<[char]>`. `KeyboardNeighbors`, the mutation scratch buffer, the search's `visited` set, and the per-layer best-cost map are all `char`-based. `enumerate_candidates` assembles each emitted string from `Vec<char>` via `iter().collect()`, so the invalid-UTF-8 path no longer exists (findings 1 and 2).
+- `EnabledOperations { insert, delete, replace, swap }` was added with `SearchConfig::with_enabled_operations`. Each mutation class is guarded by its flag (finding 3).
+- The original repro tests in `repro/tests/contract_regressions.rs` were rewritten to match the new API and now pass. Equivalent regressions were also ported into the kata's own test suite under `string-permutation-kata/rust/tests/search_tests.rs`.
