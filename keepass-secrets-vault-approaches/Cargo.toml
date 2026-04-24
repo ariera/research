@@ -1,0 +1,10 @@
+[package]
+name = "keepass-open-check"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+keepass = { version = "0.10.6", features = ["save_kdbx4"] }
+
+[dev-dependencies]
+tempfile = "3.23.0"

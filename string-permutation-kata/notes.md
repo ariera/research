@@ -1,0 +1,122 @@
+# Notes
+
+## 2026-04-24
+
+- Created investigation folder: `string-permutation-kata/`.
+- Reviewed workspace context:
+  - Existing repo contains prior research folders and top-level docs.
+  - Git worktree was clean before starting this investigation.
+- Reviewed required process skills:
+  - `using-superpowers`: check and use relevant skills before acting.
+  - `brainstorming`: do not implement yet; first clarify scope, compare approaches, present design, then get approval.
+- Initial interpretation of the request:
+  - User wants a coding kata around generating strings from a seed string.
+  - Key ambiguity: whether "all possible paths" means permutations only, insert/delete/substitute expansions, or an edit-graph traversal over strings of varying length.
+- Immediate next step:
+  - Clarify the exact generation model before defining the kata.
+- User clarified that the intended problem is a mix of:
+  - edit-graph traversal (`insert`/`delete`/`replace`-style variation), and
+  - variable-length generation over the seed alphabet.
+- Refined ambiguity:
+  - Need to define whether the kata is about exhaustive enumeration, shortest-path exploration, bounded search, or counting/coverage guarantees.
+- User provided a concrete anchor scenario:
+  - A remembered password is close to the true string but not exact.
+  - Desired exercise: starting from a seed string, systematically explore nearby strings under explicit constraints.
+  - Success condition: if the unknown target string is inside the allowed search neighborhood, the algorithm will eventually generate it.
+- Safety/product framing:
+  - Keep the kata generic and offline: "bounded string-neighborhood enumeration" rather than a tool for trying passwords against real services.
+- Emerging kata shape:
+  - Input: seed string plus mutation constraints.
+  - Output: exhaustive generation of all reachable candidate strings within the bounds, ideally without duplicates.
+- User asked for the most efficient strategy, in the password-recovery framing, that still guarantees coverage.
+- Key design implication:
+  - Efficiency should mean "find likely nearby strings early while still guaranteeing eventual coverage of the whole bounded neighborhood."
+  - This points toward ordered exploration of edit distance layers rather than unconstrained Cartesian generation.
+- Weighted likelihood is the next major design fork:
+  - Unweighted BFS gives simplest guarantee and deterministic ordering by edit distance.
+  - Weighted search reorders candidates so more plausible mutations appear earlier.
+  - Weights do not usually reduce the guaranteed search space; they mainly improve expected time-to-hit if the weighting model is good.
+- Likely recommendation for kata:
+  - Keep completeness defined by max edit distance.
+  - Optionally rank candidates within each distance layer by mutation likelihood.
+- User asked for concrete kata variants comparing unweighted and weighted search.
+- Planned options to present:
+  - Pure BFS by edit distance
+  - Layered search with weighted ordering inside each distance layer
+  - Fully weighted best-first search
+- Expected recommendation:
+  - Layered + weighted ordering, because it keeps the clean completeness proof while improving early candidate quality.
+- User selected option 2: layered search with weighted ordering inside each edit-distance layer.
+- User added a useful refinement:
+  - The algorithm should accept an optional lower bound as well as an upper bound on edit distance.
+  - This changes the search target from a ball around the seed to a distance band `[min_distance, max_distance]`.
+- Implications of lower bound:
+  - Candidate generation still explores from the seed outward.
+  - Output filtering must exclude candidates with distance below `min_distance`.
+  - Tests can separately assert completeness for exact or ranged distances.
+- User approved the problem definition:
+  - Generate all distinct strings reachable from the seed within distance band `[min_distance, max_distance]`.
+  - Traverse by increasing edit distance; rank within each layer by likelihood.
+- User approved the proposed API/behavior contract:
+  - Inputs: seed, alphabet, min/max distance, allowed operations.
+  - Output: ordered, deduplicated candidate sequence.
+  - Ordering: distance first, likelihood second, deterministic tie-breaker.
+- User approved the final design section with one change:
+  - keyboard-neighbor replace and arbitrary replace should both be part of the initial scoring model, not deferred.
+- Refined scoring direction:
+  - adjacent swap, delete, insert, keyboard-neighbor replace, and arbitrary replace are all in scope now.
+  - keyboard-neighbor replace should rank ahead of arbitrary replace within the same edit-distance layer.
+- Wrote the current design into `string-permutation-kata/README.md`.
+- Self-review caught and fixed one ambiguity:
+  - edit distance is defined by unit-cost allowed operations
+  - likelihood weights are separate and only influence ordering within a distance layer
+- User reviewed the spec and requested that the current kata folder state be committed.
+- New phase: move from kata definition to implementation planning.
+- User asked about implementation language with performance as a critical requirement.
+- Environment check:
+  - `rustc 1.95.0`
+  - `cargo 1.95.0`
+- Preliminary language conclusion:
+  - Rust remains the strongest default.
+  - Best practical alternative is Go for simpler implementation, but with weaker peak control over allocation and data layout.
+- Began subagent-driven execution of the Rust plan.
+- Task 1 review outcome:
+  - Initial worker added unrequested vendoring to work around offline dependency resolution; this was removed.
+  - Exact Task 1 scaffold now matches the requested file contents.
+  - Network-enabled verification showed a plan inconsistency: the exact `mod ...;` scaffold necessarily fails on missing module files until Task 2 creates them.
+- Corrected the implementation plan so Task 1 now expects missing module-file errors after the scaffold is added.
+- Pre-Task-2 plan audit found two more issues and corrected them:
+  - Task 2 now creates placeholder `mutations.rs` and `search.rs` so the crate compiles while config/validation is implemented.
+  - Task 3 now explicitly re-exports `one_edit_neighbors` from `lib.rs`.
+  - Task 5's exact one-edit neighborhood example was corrected to include `\"ba\"`.
+- Task 2 execution results:
+  - Rust code changes for `config.rs`, `keyboard.rs`, and the placeholder modules look correct.
+  - Another plan wording issue was found and fixed: Task 2's red-state expectation now matches the actual missing-module failure before those files are created.
+  - Cleanup is required because subagents created extra report folders and Rust build artifacts outside Task 2 scope.
+- Task 3 execution results:
+  - Implemented weighted one-edit mutation generation in Rust.
+  - Added public exports for `one_edit_neighbors` and `NeighborCandidate`.
+  - Added regression coverage to avoid no-op adjacent swaps for identical bytes.
+  - Verified focused Task 3 tests passed before committing.
+- User requested committing and pushing the current checkpoint so another agent can continue.
+- Task 4 execution results:
+  - Added three failing search tests: min-distance exclusion, distance-before-likelihood ordering, dedup across multi-path candidates.
+  - Confirmed red state via the dedup test hitting the `todo!` in `enumerate_candidates`.
+  - Implemented layered BFS in `src/search.rs` with `FxHashSet` visited set, per-layer `FxHashMap` best-cost map, and stable `(cost, bytes)` sort.
+  - All 9 tests in `search_tests.rs` pass.
+- Task 5 execution results:
+  - Added completeness tests: exact one-edit neighborhood over small alphabet, and exact-distance band.
+  - Both tests passed immediately against the Task 4 implementation — no tightening in `src/search.rs` was required.
+  - Plan deviation: Task 5 Step 3 was a no-op because the Task 4 BFS already emits the correct dedup ordering. Recorded here for traceability.
+  - All 11 tests pass.
+- Task 6 execution results:
+  - Added `benches/search_bench.rs` and registered `[[bench]]` with `harness = false` in `Cargo.toml`.
+  - Baseline for `enumerate password distance 1..2`: ~105 ms median.
+  - Refactored `mutations.rs` to expose `for_each_one_edit_neighbor(seed, config, emit)` using a reused scratch buffer; `one_edit_neighbors` is now a thin wrapper for tests.
+  - Updated `search.rs` to consume the callback API, allocate Vec<u8> only for unique inserts, preallocate `next_layer_best`, and use `sort_unstable_by`.
+  - Replaced deprecated `criterion::black_box` with `std::hint::black_box` in the bench.
+  - Post-optimization: ~102 ms median — modest but measurable improvement and noticeably lower per-neighbor allocation churn.
+- Task 7 execution results:
+  - Added an "Implementation Direction" section to `README.md` that points at the working crate and its module responsibilities.
+  - Confirmed performance levers via benchmarking: byte-oriented search, reused scratch buffer, and FxHash-backed dedup dominate cost. UTF-8 conversion is only paid once per emitted candidate at the layer boundary.
+  - Final verification: all 11 tests pass and the benchmark completes at ~100 ms.

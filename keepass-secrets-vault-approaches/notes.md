@@ -1,0 +1,52 @@
+# Notes
+
+## 2026-04-23
+- Started investigation into fast KeePass-backed secrets-vault approaches.
+- Loaded skill instructions: using-superpowers and brainstorming.
+- Created investigation folder and initial notes file.
+- Inspecting local markdown/docs and recent git history for context.
+- User asked which runtime yields highest speed.
+- Preliminary conclusion: Rust is the best choice for raw throughput and low overhead; Go is a strong second for simpler implementation.
+- Important caveat: for KeePass-backed access, unlock/KDF/parse cost usually dominates; caching architecture matters more than language if the DB is reopened frequently.
+- User clarified target access pattern: open DB, read one secret, close DB.
+- Key implication: repeated unlock cost dominates; Rust may help somewhat, but DB KDF settings and library internals will matter more than language choice.
+- Narrowed recommendation set to two designs: (1) long-lived local sidecar holding unlocked KeePass state in memory for max speed, (2) simple one-shot library/CLI wrapper reopening the DB for each lookup for minimum implementation effort.
+- Likely recommendation for this use case: sidecar architecture if speed is truly critical; simplest one-shot wrapper only if lookup frequency is low enough that unlock latency is acceptable.
+- Scope narrowed to a single operation: attempt to open KeePass DB with password and return boolean success/failure.
+- No secret lookup, no caching, no writes for this research slice.
+- Initial success criteria before error-model revision: return true only if the database can be successfully unlocked and parsed enough to prove the password/file are valid; return false for wrong password, corrupt DB, unsupported format, or other open failures.
+- User wants both interfaces: library and CLI.
+- Design direction: shared core open-check function with a thin CLI wrapper. Public behavior remains boolean success/failure only.
+- User rejected opaque false-on-any-failure behavior.
+- Revised direction: expose explicit open failure categories instead of collapsing all failures into a single boolean.
+- Updated requirement: caller must be able to distinguish at least wrong password, corrupt database, unsupported format, and filesystem/open errors.
+- User approved explicit error categories.
+- Superseded the earlier boolean-only public contract with `Result<(), OpenError>` plus a convenience boolean helper.
+- Wrote the design spec and README report inside the investigation folder to keep the research output self-contained per workspace instructions.
+- Transitioning from approved design to implementation planning.
+- Using writing-plans workflow, with plan file kept inside the investigation folder per workspace output rules.
+- Attempted to create branch codex/keepass-open-check; repository ref layout blocked the codex/ prefix, so branch naming needs adjustment.
+- Execution mode selected: inline plan execution in the current workspace on branch keepass-open-check.
+- Beginning TDD cycle with crate scaffold and failing tests.
+- Raw environment check: cargo and rustc are not on PATH, and ~/.cargo/bin is absent. Searching for an installed Rust toolchain before requesting installation.
+- User approved implementation. Starting with crate scaffold, dependency selection, and failing tests.
+- Confirmed crate candidate: keepass 0.10.6.
+- Pulling local crate source to inspect the actual open API and error mapping before writing implementation code.
+- Added the Rust crate scaffold with stubbed library/CLI code and integration tests that generate temporary KDBX fixtures at runtime.
+- Ran `cargo test --test open_database` and confirmed the initial red state: 5 tests compiled and failed against placeholder behavior.
+- Implemented the real `Database::open` path plus typed `OpenError` mapping from `keepass::error::DatabaseOpenError`.
+- Re-ran `cargo test --test open_database` and confirmed all 5 library tests passed.
+- Added CLI integration tests for success and wrong-password output, then confirmed they failed against the placeholder binary.
+- Implemented a thin CLI wrapper with `--path` and `--password` parsing, exit code 0/1/2 handling, and stable machine-readable failure codes.
+- Re-ran `cargo test --test cli` and confirmed both CLI tests passed.
+- Added a folder-local `.gitignore` for `target/` so generated build artifacts are excluded from the research output.
+- Ran `cargo fmt` to normalize the Rust source layout.
+- Ran `cargo test` and confirmed the full crate is green: 7 integration tests passed, 0 failed.
+- Updated `README.md` with explicit CLI build instructions, direct-binary usage, exit-code behavior, and shell examples.
+- User reported a real-world failure: assets/qwerty.kdbx opens in MacPass with password qwerty, but the CLI returns corrupt-db.
+- Starting systematic debugging: reproduce the failure, inspect the underlying keepass crate error, then adjust the implementation based on the actual cause.
+- Reproduced the failure with a regression test against assets/qwerty.kdbx.
+- Root cause: keepass 0.10.6 rejects a valid KDBX3 XML element, PreviousParentGroup, with Format(Kdbx3(Xml(Xml(Custom("unknown variant ..."))))).
+- This is not a bad password and not file corruption; it is an unsupported parser case in the underlying crate.
+- Hypothesis: using Database::get_xml instead of Database::open will accept valid databases whose decrypted XML contains fields unsupported by the keepass crate object model, while still rejecting wrong passwords and broken files.
+- Switched validation from Database::open to Database::get_xml so successful password-based decryption is not blocked by unsupported XML elements in the keepass crate object model.
